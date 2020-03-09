@@ -4,23 +4,16 @@ import csv
 
 
 def main():
-    if len(sys.argv) != 2:
-        print('Program expects exactly one argument but {} were given.'.format(len(sys.argv)-1))
-        sys.exit(1)
+    data = np.loadtxt(fname=sys.argv[1])
+    num_individuals, num_snps = data.shape
 
-    file_name = sys.argv[1]
+    allele_counts = np.zeros((num_snps, 4))
 
-    try:
-        file = open(file_name)
-    except FileNotFoundError:
-        print('File {} could not be found'.format(file_name))
-    except IOError:
-        print('File {} could not be opened/read'.format(file_name))
+    for i in range(num_snps):
+        _, counts = np.unique(data[:, i], return_counts=True)
+        allele_counts[i, :] = counts
 
-    file_reader = csv.reader(file, delimiter=' ')
-    for entry in file:
-        print(entry)
-    file.close()
+    print(allele_counts)
 
 
 if __name__ == '__main__':

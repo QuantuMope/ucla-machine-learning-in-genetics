@@ -1,0 +1,6 @@
+#!/bin/bash
+
+cat $1 | sed 's/*/9/g' > temp_data.txt
+python3 phaser.py temp_data.txt
+rm -rf temp_data.txt
+
