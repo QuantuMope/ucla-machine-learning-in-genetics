@@ -1,248 +1,88 @@
 import numpy as np
 import sys
-import random
+import itertools
+import time
+
+
+class haplotypes:
+    def __init__(self):
+        self.haplos = []
+
+    def append(self, x):
+        self.haplos.append(x)
+
+    def len(self):
+        return len(self.haplos)
+
+    def cutout(self):
+        self.haplos = np.unique(self.haplos).tolist()
+
+
+unique_haplotypes = haplotypes()
+sys.setrecursionlimit(20000)
+
+
+def get_unique_hap_recurse(individual, index, haplotype):
+    if index == len(individual):
+        unique_haplotypes.append(haplotype)
+        return
+
+    snp = individual[index]
+    while snp != 1 and index < len(individual):
+        if snp == 0:
+            haplotype += "0"
+        elif snp == 2:
+            haplotype += "1"
+        index += 1
+        if index == len(individual): break
+        snp = individual[index]
+    if index != len(individual) and snp == 1:
+        new_haplo = haplotype
+        haplotype += "1"
+        get_unique_hap_recurse(individual, index + 1, haplotype)
+        new_haplo = new_haplo + "0"
+        get_unique_hap_recurse(individual, index + 1, new_haplo)
+
+    if index == len(individual):
+        unique_haplotypes.append(haplotype)
+
+
+def get_unique_loop(data, num_individuals):
+    x = [[] for _ in range(num_individuals)]
+    for g in range(num_individuals):
+        sample_genotype = data[:, g]
+        for i in range(4000):
+            if i == 3999:
+                block_genotype = sample_genotype[i * 10:]
+            else:
+                block_genotype = sample_genotype[i * 10: (i + 1) * 10]
+            num_ones = len(np.where(block_genotype == 1)[0])
+            # print("num_ones: {}".format(num_ones))
+            for y in range(2 ** num_ones):
+                x[g].append(bin(y)[2:])
+                # keep 0 and 2 in original same, and replace 1 by whatever is in x
+            # print("iterations {}".format(i))
+
+
+def clarks_algo(num_blocks, num_individuals, block_size):
+    for i in range(num_blocks):
+        # Clark's algo here
+        # Define starting haplos
+        unique_haplos = []
+        for g in range(num_individuals):
+            # Try to match with current one or create a new error
+            for b in range(i*block_size, (i+1)*block_size):
+                unique_haplos.append()
 
 
 def main():
     data = np.loadtxt(fname=sys.argv[1])
-    num_individuals, num_snps = data.shape
+    num_snps, num_individuals = data.shape
+    sample_genotype = data[:, 0]
+    num_ones = len(np.where(sample_genotype == 1)[0])
 
-    for i in range(num_snps):
-        if i == 0:
-            masked = np.where(data[:, 0] == 9)[0]
-            for mask in masked:
-                data[mask, 0] = random.choice([0, 2])
-
-        elif i == 1:
-            trans_probs_1 = np.zeros((num_snps, 6))
-            prev_zeroes = np.where(data[:, 0] == 0)[0]
-            prev_ones = np.where(data[:, 0] == 1)[0]
-            prev_twos = np.where(data[:, 0] == 2)[0]
-            next_from_zeros = data[prev_zeroes, i]
-            next_from_ones = data[prev_ones, i]
-            next_from_twos = data[prev_twos, i]
-
-            zeroes_after_zeroes = len(np.where(next_from_zeros == 0)[0])
-            twos_after_zeroes = len(np.where(next_from_zeros == 2)[0])
-            total_zeroes = zeroes_after_zeroes + twos_after_zeroes
-
-            zeroes_after_ones = len(np.where(next_from_ones == 0)[0])
-            twos_after_ones = len(np.where(next_from_ones == 2)[0])
-            total_ones = zeroes_after_ones + twos_after_ones
-
-            zeroes_after_twos = len(np.where(next_from_twos == 0)[0])
-            twos_after_twos = len(np.where(next_from_twos == 2)[0])
-            total_twos = zeroes_after_twos + twos_after_twos
-
-            trans_probs_1[i, :2] = [zeroes_after_zeroes/total_zeroes,
-                                    twos_after_zeroes/total_zeroes]
-            trans_probs_1[i, 2:4] = [zeroes_after_ones/total_ones,
-                                     twos_after_ones/total_ones]
-            trans_probs_1[i, 4:] = [zeroes_after_twos/total_twos,
-                                    twos_after_twos/total_twos]
-
-            trp = trans_probs_1
-
-            z_assign = 0 if trp[i, 0] > trp[i, 1] else 2
-            o_assign = 0 if trp[i, 2] > trp[i, 3] else 2
-            t_assign = 0 if trp[i, 4] > trp[i, 5] else 2
-
-            masked = np.where(data[:, i] == 9)[0]
-
-            for mask in masked:
-                if data[mask, i-1] == 0:
-                    data[mask, i] = z_assign
-                elif data[mask, i-1] == 1:
-                    data[mask, i] = o_assign
-                elif data[mask, i-1] == 2:
-                    data[mask, i] = t_assign
-
-        elif i == 2:
-            prev_indexes = []
-            # zz, zo, zt, oz, oo, ot, tz, to, tt
-            for p in range(3):
-                for j in range(3):
-                    prev_indexes.append(np.where(np.logical_and(data[:, i-2] == p, data[:, i-1] == j))[0])
-
-            snps = []
-            for prev in prev_indexes:
-                snps.append(data[prev, i])
-
-            counts = []
-            for snp in snps:
-                counts.append(len(np.where(snp == 0)[0]))
-                counts.append(len(np.where(snp == 2)[0]))
-
-            trp = []
-            for j in range(0, len(counts), 2):
-                total = counts[j] + counts[j+1]
-                if total == 0:
-                    trp.append(0)
-                    trp.append(0)
-                    continue
-                trp.append(counts[j] / total)
-                trp.append(counts[j+1] / total)
-
-            assigns = []
-            for j in range(0, len(trp), 2):
-                assigns.append(0 if trp[j] > trp[j+1] else 2)
-
-            masked = np.where(data[:, i] == 9)[0]
-
-            for mask in masked:
-                counter = 0
-                pp, p = data[mask, i-2:i]
-                for z in range(3):
-                    for j in range(3):
-                        if pp == z and p == j:
-                            data[mask, i] = assigns[counter]
-                        counter += 1
-        elif i == 3:
-            # 27 total possible permutations
-            prev_indexes = []
-            for p in range(3):
-                for j in range(3):
-                    for t in range(3):
-                        prev_indexes.append(np.where(np.logical_and.reduce((data[:, i-3] == p,
-                                                                            data[:, i-2] == j,
-                                                                            data[:, i-1] == t)))[0])
-
-            snps = []
-            for prev in prev_indexes:
-                snps.append(data[prev, i])
-
-            counts = []
-            for snp in snps:
-                counts.append(len(np.where(snp == 0)[0]))
-                counts.append(len(np.where(snp == 2)[0]))
-
-            trp = []
-            for j in range(0, len(counts), 2):
-                total = counts[j] + counts[j + 1]
-                if total == 0:
-                    trp.append(0)
-                    trp.append(0)
-                    continue
-                trp.append(counts[j] / total)
-                trp.append(counts[j+1] / total)
-
-            assigns = []
-            for j in range(0, len(trp), 2):
-                assigns.append(0 if trp[j] > trp[j+1] else 2)
-
-            masked = np.where(data[:, i] == 9)[0]
-
-            for mask in masked:
-                counter = 0
-                ppp, pp, p = data[mask, i-3:i]
-                for z in range(3):
-                    for j in range(3):
-                        for t in range(3):
-                            if ppp == z and pp == j and p == t:
-                                data[mask, i] = assigns[counter]
-                            counter += 1
-
-        elif i == 4:
-            # 64 total possible permutations
-            prev_indexes = []
-            for p in range(3):
-                for j in range(3):
-                    for t in range(3):
-                        for z in range(3):
-                            prev_indexes.append(np.where(np.logical_and.reduce((data[:, i-4] == p,
-                                                                                data[:, i-3] == j,
-                                                                                data[:, i-2] == t,
-                                                                                data[:, i-1] == z)))[0])
-
-            snps = []
-            for prev in prev_indexes:
-                snps.append(data[prev, i])
-
-            counts = []
-            for snp in snps:
-                counts.append(len(np.where(snp == 0)[0]))
-                counts.append(len(np.where(snp == 2)[0]))
-
-            trp = []
-            for j in range(0, len(counts), 2):
-                total = counts[j] + counts[j + 1]
-                if total == 0:
-                    trp.append(0)
-                    trp.append(0)
-                    continue
-                trp.append(counts[j] / total)
-                trp.append(counts[j+1] / total)
-
-            assigns = []
-            for j in range(0, len(trp), 2):
-                assigns.append(0 if trp[j] > trp[j+1] else 2)
-
-            masked = np.where(data[:, i] == 9)[0]
-
-            for mask in masked:
-                counter = 0
-                pppp, ppp, pp, p = data[mask, i-4:i]
-                for z in range(3):
-                    for j in range(3):
-                        for t in range(3):
-                            for n in range(3):
-                                if pppp == z and ppp == j and pp == t and p == n:
-                                    data[mask, i] = assigns[counter]
-                                counter += 1
-        else:
-            # 125 total possible permutations
-            prev_indexes = []
-            for p in range(3):
-                for j in range(3):
-                    for t in range(3):
-                        for z in range(3):
-                            for y in range(3):
-                                prev_indexes.append(np.where(np.logical_and.reduce((data[:, i-5] == p,
-                                                                                    data[:, i-4] == j,
-                                                                                    data[:, i-3] == t,
-                                                                                    data[:, i-2] == z,
-                                                                                    data[:, i-1] == y)))[0])
-
-            snps = []
-            for prev in prev_indexes:
-                snps.append(data[prev, i])
-
-            counts = []
-            for snp in snps:
-                counts.append(len(np.where(snp == 0)[0]))
-                counts.append(len(np.where(snp == 2)[0]))
-
-            trp = []
-            for j in range(0, len(counts), 2):
-                total = counts[j] + counts[j + 1]
-                if total == 0:
-                    trp.append(0)
-                    trp.append(0)
-                    continue
-                trp.append(counts[j] / total)
-                trp.append(counts[j+1] / total)
-
-            assigns = []
-            for j in range(0, len(trp), 2):
-                assigns.append(0 if trp[j] > trp[j+1] else 2)
-
-            masked = np.where(data[:, i] == 9)[0]
-
-            for mask in masked:
-                counter = 0
-                ppppp, pppp, ppp, pp, p = data[mask, i-5:i]
-                for z in range(3):
-                    for j in range(3):
-                        for t in range(3):
-                            for n in range(3):
-                                for y in range(3):
-                                    if ppppp == z and pppp == j and ppp == t and pp == n and p == y:
-                                        data[mask, i] = assigns[counter]
-                                    counter += 1
-
-        print("Processing SNP {}".format(i), flush=True)
-
-    np.savetxt('output', data, fmt='%d', delimiter=' ')
+    block_size = 2
+    num_blocks = num_snps/block_size
 
 
 if __name__ == '__main__':

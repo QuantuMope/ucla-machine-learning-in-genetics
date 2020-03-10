@@ -2,10 +2,10 @@
 
 # imputation currently is 81% correct
 
-if [[ "$1" = "run" ]]
+if [[ "$1" = "impute" ]]
 then
     cat $2 | sed 's/*/9/g' > temp_data.txt
-    python3 phaser.py temp_data.txt
+    python3 imputator.py temp_data.txt
     rm -rf temp_data.txt
 elif [[ "$1" = "compare" ]]
 then
@@ -13,5 +13,8 @@ then
 elif [[ "$1" = "total_mask" ]]
 then
 	fgrep -o "*" $2 | wc -l
+elif [[ "$1" = "run" ]]
+then
+    python3 phaser.py $2
 fi
 
