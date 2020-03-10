@@ -68,8 +68,7 @@ def main():
                 elif data[mask, i-1] == 2:
                     data[mask, i] = t_assign
 
-        # elif i == 2:
-        else:
+        elif i == 2:
             prev_indexes = []
             # zz, zo, zt, oz, oo, ot, tz, to, tt
             for p in range(3):
@@ -99,63 +98,54 @@ def main():
             masked = np.where(data[:, i] == 9)[0]
 
             for mask in masked:
-                pp, p = data[mask, i-2], data[mask, i-1]
-                if pp == p == 0:
-                    data[mask, i] = assigns[0]
-                elif pp == 0 and p == 1:
-                    data[mask, i] = assigns[1]
-                elif pp == 0 and p == 2:
-                    data[mask, i] = assigns[2]
-                elif pp == 1 and p == 0:
-                    data[mask, i] = assigns[3]
-                elif pp == p == 1:
-                    data[mask, i] = assigns[4]
-                elif pp == 1 and p == 2:
-                    data[mask, i] = assigns[5]
-                elif pp == 2 and p == 0:
-                    data[mask, i] = assigns[6]
-                elif pp == 2 and p == 1:
-                    data[mask, i] = assigns[7]
-                elif pp == p == 2:
-                    data[mask, i] = assigns[8]
-        # else:
-        #     # 27 total possible permutations
-        #     prev_indexes = []
-        #     for p in range(3):
-        #         for j in range(3):
-        #             for t in range(3):
-        #                 prev_indexes.append(np.where(np.logical_and.reduce((data[:, i-3] == p,
-        #                                                                     data[:, i-2] == j,
-        #                                                                     data[:, i-1] == t)))[0])
-        #
-        #     snps = []
-        #     for prev in prev_indexes:
-        #         snps.append(data[prev, i])
-        #
-        #     counts = []
-        #     for snp in snps:
-        #         counts.append(len(np.where(snp == 0)[0]))
-        #         counts.append(len(np.where(snp == 2)[0]))
-        #
-        #     trp = []
-        #     for j in range(0, len(counts), 2):
-        #         total = counts[j] + counts[j + 1]
-        #         trp.append(counts[j] / total)
-        #         trp.append(counts[j+1] / total)
-        #
-        #     assigns = []
-        #     for j in range(0, len(trp), 2):
-        #         assigns.append(0 if trp[j] > trp[j+1] else 2)
-        #         assert abs((trp[j] + trp[j+1]) - 1.) < 0.01
-        #
-        #     masked = np.where(data[:, i] == 9)[0]
-        #
-        #     for mask in masked:
-        #         for p in range(3):
-        #             for j in range(3):
-        #                 for t in range(3):
-        #                     if np.logical_and.reduce((data[mask, i-3] == p, data[mask, i-2] == j, data[mask, i-1] == t)):
-        #                         data[mask, i] = assigns[p+j+t]
+                counter = 0
+                pp, p = data[mask, i-2:i]
+                for z in range(3):
+                    for j in range(3):
+                        if pp == z and p == j:
+                            data[mask, i] = assigns[counter]
+                        counter += 1
+        else:
+            # 27 total possible permutations
+            prev_indexes = []
+            for p in range(3):
+                for j in range(3):
+                    for t in range(3):
+                        prev_indexes.append(np.where(np.logical_and.reduce((data[:, i-3] == p,
+                                                                            data[:, i-2] == j,
+                                                                            data[:, i-1] == t)))[0])
+
+            snps = []
+            for prev in prev_indexes:
+                snps.append(data[prev, i])
+
+            counts = []
+            for snp in snps:
+                counts.append(len(np.where(snp == 0)[0]))
+                counts.append(len(np.where(snp == 2)[0]))
+
+            trp = []
+            for j in range(0, len(counts), 2):
+                total = counts[j] + counts[j + 1]
+                trp.append(counts[j] / total)
+                trp.append(counts[j+1] / total)
+
+            assigns = []
+            for j in range(0, len(trp), 2):
+                assigns.append(0 if trp[j] > trp[j+1] else 2)
+                assert abs((trp[j] + trp[j+1]) - 1.) < 0.01
+
+            masked = np.where(data[:, i] == 9)[0]
+
+            for mask in masked:
+                counter = 0
+                ppp, pp, p = data[mask, i-3:i]
+                for z in range(3):
+                    for j in range(3):
+                        for t in range(3):
+                            if ppp == z and pp == j and p == t:
+                                data[mask, i] = assigns[counter]
+                            counter += 1
 
         print("Processing SNP {}".format(i), flush=True)
 
