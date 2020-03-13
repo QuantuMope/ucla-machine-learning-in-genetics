@@ -4,6 +4,16 @@ from math import ceil
 from time import time
 
 
+"""
+    Phases imputed genotypes into haplotypes.
+    
+    Uses a tiling variant of Clark's algorithm.
+    A minimum parsimony approach is used to get
+    the haplotype phases for blocks of 12 SNPs
+    at a time.
+"""
+
+
 def update_phased_haplos(phased_haplotypes, i, h1s, h1e, haplo_1, haplo_2):
     phased_haplotypes[2 * i, h1s:h1e] = haplo_1
     phased_haplotypes[2 * i + 1, h1s:h1e] = haplo_2

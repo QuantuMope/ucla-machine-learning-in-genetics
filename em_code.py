@@ -2,6 +2,11 @@ import numpy as np
 import sys
 
 
+"""
+    Miscellaneous code for EM approach (unfinished)
+"""
+
+
 class Haplotypes:
     def __init__(self):
         self.haplos = []

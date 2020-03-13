@@ -5,6 +5,22 @@ import sys
 from time import time
 
 
+"""
+    Imputes masked values in scanned genotype.
+    
+    Calculates the transition frequencies of the genotypes for
+    all individuals. Frequencies are calculated for the transition
+    from the last 2 SNPs to the next SNP. Masked values are then
+    imputed using the maximum likelihood estimate provided the
+    frequencies.
+    
+    NOTE: Code was originally written to compute the frequencies
+    for the last 3, 4, or 5 SNPs but has been commented out as
+    assigning based on the last 2 SNPs had minimum error during
+    testing.
+"""
+
+
 def main():
     data = np.loadtxt(fname=sys.argv[1])
     data = data.T
